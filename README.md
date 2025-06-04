@@ -13,6 +13,28 @@
 
 ---
 
+## CA Integration (mTLS)
+
+Rezn/Seedr uses mTLS for node-to-node and service communication.  
+You need an internal CA to issue and rotate X.509 certs.  
+We don’t care what you use—just give us certs.
+
+### Options That Actually Work
+
+* [step-ca](https://smallstep.com/docs/step-ca/)
+* [cfssl](https://github.com/cloudflare/cfssl)
+* Anything else that produces certs in PEM format
+
+### Revocation & Rotation
+
+We recommend you keep certs short-lived (a few days, tops).  
+
+#### TL;DR
+
+You bring the certs, rezn takes care of the mTLS.
+
+---
+
 ## Directory Layout
 
 ```
@@ -26,15 +48,6 @@
 /etc/systemd/system/
 ├── rezn.service
 ├── orqos.service (optional)
-```
-
----
-
-## Usage
-
-```bash
-# Bootstrap a node as Rezn + Orqos host
-sudo ./rezn-seedr install
 ```
 
 ---
@@ -61,7 +74,7 @@ Docker must be installed on the target host.
 
 ---
 
-### 🔐 Trust Model
+### Trust Model
 
 Based on mTLS Orqos.
 The trust config is defined in `trust.toml`:
