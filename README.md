@@ -1,83 +1,86 @@
 # rezn-seedr
 
-**rezn-seedr** is a bootstrapper for Rezn + Orqos infrastructure nodes.
+**rezn-seedr** bootstraps Rezn + Orqos infrastructure nodes
 
 ---
 
 ## Features
 
-* One-shot provisioning of Rezn and/or Orqos nodes
-* Installs certs and trust config
-* Sets up systemd units for long-running services
-* Designed to work without any user interaction
+- One-shot provisioning for Rezn and/or Orqos nodes
+- Installs certs, trust configs, and SSH host/user certs (see below)
+- Sets up systemd units for long-running services
+
 
 ---
 
 ## CA Integration (mTLS)
 
-Rezn/Seedr uses mTLS for node-to-node and service communication.  
-You need an internal CA to issue and rotate X.509 certs.  
-We don’t care what you use—just give us certs.
+Rezn/Seedr relies on **mutual TLS** (mTLS) for all node and service communication.  
+You must provide a CA to issue and rotate X.509 certs—*we don’t care which one*.
 
-### Options That Actually Work
+**Recommended:**
+- [step-ca](https://smallstep.com/docs/step-ca/) — maintained, automatable, supports SSH CA
+- [cfssl](https://github.com/cloudflare/cfssl) — works, but limited features
+- Anything that spits out PEM certs
 
-* [step-ca](https://smallstep.com/docs/step-ca/)
-* [cfssl](https://github.com/cloudflare/cfssl)
-* Anything else that produces certs in PEM format
+**Revocation & Rotation:**  
+Short-lived certs (24-72h) recommended.  
+Revocation (“kill switch”) is up to your CA—if you need instant revocation, pay for it or build it yourself.
 
-### Revocation & Rotation
+**TL;DR:**  
+You bring the certs, Rezn takes care of the mTLS.
 
-We recommend you keep certs short-lived (a few days, tops).  
+---
 
-#### TL;DR
+## SSH Certificate Authority (SSH CA) Support
 
-You bring the certs, rezn takes care of the mTLS.
+Rezn/Seedr expects your environment to support **SSH CA** (short-lived, signed SSH host and user certs).  
+- [step-ssh](https://smallstep.com/docs/step-ssh/) is fully supported and recommended.
+- Traditional static SSH keys are discouraged and may not be supported in future releases.
+- If you’re not familiar with SSH CA, read: https://smallstep.com/docs/step-ssh/
 
 ---
 
 ## Directory Layout
 
 ```
+
 /etc/rezn/
 ├── trust.toml
 ├── certs/
 │   ├── rezn-client.pem
 │   ├── rezn-client.key
 │   └── orqos-ca.pem
-
-/etc/systemd/system/
-├── rezn.service
-├── orqos.service (optional)
+│   ├── ssh\_host\_key-cert.pub     # SSH host cert (recommended)
+│   └── ssh\_user-cert.pub         # SSH user cert (optional)
 ```
 
 ---
 
 ## Supported operating systems
 
-Initially only Debian Bookworm and latest Ubuntu LTS.
+Currently: Debian Bookworm, Ubuntu LTS.
 
-### Requirements
-
-Docker must be installed on the target host.
+**Docker is required.**
 
 ---
 
 ### What `rezn-seedr` Does
 
 1. Ensures `/etc/rezn` and `/etc/rezn/certs/` exist
-2. Copies certs to the appropriate location
+2. Copies certs (X.509, SSH) to the right places
 3. Writes a valid `trust.toml`
-4. Sets up `rezn` either locally or on a remote host
-5. Sets up `orqos` nodes
-6. Verifies that services are running
-7. Logs everything locally, optionally to Loki
+4. Installs systemd units for rezn and orqos
+5. Verifies services are running
+6. Logs locally and optionally to Loki
 
 ---
 
-### Trust Model
+## Trust Model
 
-Based on mTLS Orqos.
-The trust config is defined in `trust.toml`:
+mTLS for all RPC and service calls.  
+SSH CA for shell/automation access.  
+Config via `/etc/rezn/trust.toml`:
 
 ```toml
 [trust]
@@ -90,14 +93,12 @@ ca_bundle   = "/etc/rezn/certs/orqos-ca.pem"
 
 ### WARNING
 
-This tool **takes over the box.** It is not meant to be used on shared systems or developer laptops.
-You run `rezn-seedr` on clean hosts you intend to dedicate to infrastructure.
+This tool **takes over the box.**
+Run it only on clean, dedicated hosts, not shared or dev laptops.
 
 ---
 
-### Status
+## Status
 
-This project is **under active development**. Currently supported:
-
----
-
+**Under active development.**
+Breaking changes happen weekly.
