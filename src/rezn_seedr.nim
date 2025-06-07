@@ -27,6 +27,10 @@ if paramCount() > 0 and paramStr(1) == "--help":
   printHelp()
   quit(0)
 
+if findExe("step") == "":
+  stderr.writeLine("[ERR] 'step' binary not found in PATH. Aborting.")
+  quit(1)
+
 let caName = prompt("CA name", "rezn-seedr")
 let caDns = prompt("DNS name", "localhost")
 let caAddr = prompt("Listen address", "127.0.0.1:9000")
@@ -46,16 +50,26 @@ var pwFile = ""
 var provPwFile = ""
 
 if caPass.len > 0:
-  let (pwF, pwPath) = createTempFile("step-pw", "")
-  pwF.write(caPass)
-  pwF.close()
-  pwFile = pwPath
+  try:
+    let (pwF, pwPath) = createTempFile("step-pw", "")
+    setFilePermissions(pwPath, {fpUserRead, fpUserWrite})
+    pwF.write(caPass)
+    pwF.close()
+    pwFile = pwPath
+  except OSError as e:
+    stderr.writeLine("[ERR] Failed to create temp file for CA password: ", e.msg)
+    quit(1)
 
 if provPass.len > 0:
-  let (provF, provPath) = createTempFile("step-provpw", "")
-  provF.write(provPass)
-  provF.close()
-  provPwFile = provPath
+  try:
+    let (provF, provPath) = createTempFile("step-provpw", "")
+    setFilePermissions(provPath, {fpUserRead, fpUserWrite})
+    provF.write(provPass)
+    provF.close()
+    provPwFile = provPath
+  except OSError as e:
+    stderr.writeLine("[ERR] Failed to create temp file for provision password: ", e.msg)
+    quit(1)
 
 
 # Build args as a seq
@@ -73,12 +87,19 @@ if noDb: args.add "--no-db"
 
 echo "\nRunning: step ", args.join(" ")
 
-let p = startProcess("step", "", args, options={poParentStreams})
-let code = p.waitForExit()
-if code == 0:
-  echo "\n[OK] CA initialized successfully!\n"
-else:
-  stderr.writeLine("\n[ERR] step-ca init failed.")
+try:
+  let p = startProcess("step", "", args, options={poParentStreams})
+  let code = p.waitForExit()
+  if code == 0:
+    echo "\n[OK] CA initialized successfully!\n"
+  else:
+    stderr.writeLine("\n[ERR] step-ca init failed with exit code: " & $code)
+except OSError:
+  stderr.writeLine("\n[ERR] Failed to execute 'step' command. Is step-ca installed?")
+  # Still cleanup temp files before exiting
+  if pwFile.len > 0: secureDelete(pwFile)
+  if provPwFile.len > 0: secureDelete(provPwFile)
+  quit(1)
 
 # Cleanup temp files (securely)
 if pwFile.len > 0: secureDelete(pwFile)
