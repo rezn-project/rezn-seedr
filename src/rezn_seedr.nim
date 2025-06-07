@@ -64,7 +64,7 @@ var provPwFile = ""
 if caPass.len > 0:
   try:
     let (pwF, pwPath) = createTempFile("step-pw", "")
-    # setFilePermissions(pwPath, {fpUserRead, fpUserWrite})
+    setFilePermissions(pwPath, {fpUserRead, fpUserWrite})
     pwF.write(caPass)
     pwF.close()
     pwFile = pwPath
@@ -75,7 +75,7 @@ if caPass.len > 0:
 if provPass.len > 0:
   try:
     let (provF, provPath) = createTempFile("step-provpw", "")
-    # setFilePermissions(provPath, {fpUserRead, fpUserWrite})
+    setFilePermissions(provPath, {fpUserRead, fpUserWrite})
     provF.write(provPass)
     provF.close()
     provPwFile = provPath
