@@ -7,13 +7,17 @@ proc prompt(msg: string, def = ""): string =
 
 # Overwrite then remove temp file (security-theater)
 proc secureDelete(path: string) =
-  if fileExists(path):
+  try:
     let size = getFileSize(path)
     if size > 0:
       var f = open(path, fmWrite)
-      for _ in 0..<size: f.write('\x00')
-      f.close()
+      try:
+        for _ in 0..<size: f.write('\x00')
+      finally:
+        f.close()
     removeFile(path)
+  except IOError:
+    stderr.writeLine("[WARN] Failed to securely delete: " & path)
 
 # Usage/help
 proc printHelp() =
