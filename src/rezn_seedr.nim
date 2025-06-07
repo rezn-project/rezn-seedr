@@ -1,4 +1,4 @@
-import os, osproc, strutils, std/tempfiles
+import os, osproc, strutils, std/tempfiles, passgen, std/streams
 
 proc prompt(msg: string, def = ""): string =
   stdout.write(msg & (if def != "": " [" & def & "]" else: "") & ": ")
@@ -35,19 +35,27 @@ if findExe("step") == "":
   stderr.writeLine("[ERR] 'step' binary not found in PATH. Aborting.")
   quit(1)
 
+echo findExe("step")
+
+let pg = newPassGen(passlen = 14)
+
 let caName = prompt("CA name", "rezn-seedr")
 let caDns = prompt("DNS name", "localhost")
 let caAddr = prompt("Listen address", "127.0.0.1:9000")
 let provName = prompt("Provisioner name", "admin")
 let addAcme = prompt("Add ACME provisioner (y/N)", "N").toLowerAscii == "y"
-let enableSsh = prompt("Enable SSH CA (y/N)", "N").toLowerAscii == "y"
+let enableSsh = prompt("Enable SSH CA (y/N)", "Y").toLowerAscii == "y"
 
-let caPass = prompt("CA password (leave empty for random)", "")
+var caPass = prompt("CA password (leave empty for random)", "")
 if caPass.len == 0:
-  echo "[INFO] Empty password: step-ca will generate a random one."
-let provPass = prompt("Provisioner password (leave empty for random)", "")
+  echo "[INFO] Empty password: one will be generated for you."
+
+  caPass = pg.getPassword()
+var provPass = prompt("Provisioner password (leave empty for random)", "")
 if provPass.len == 0:
-  echo "[INFO] Empty provisioner password: step-ca will generate a random one."
+  echo "[INFO] Empty provisioner password: one will be generated for you."
+  
+  provPass = pg.getPassword()
 let noDb = prompt("Disable DB? (y/N)", "N").toLowerAscii == "y"
 
 var pwFile = ""
@@ -81,8 +89,10 @@ var args: seq[string] = @["ca", "init",
   "--name", caName,
   "--dns", caDns,
   "--address", caAddr,
-  "--provisioner", provName
+  "--provisioner", provName,
+  "--deployment-type", "standalone"
 ]
+
 if addAcme: args.add "--acme"
 if enableSsh: args.add "--ssh"
 if pwFile.len > 0: args.add ["--password-file", pwFile]
@@ -92,14 +102,21 @@ if noDb: args.add "--no-db"
 echo "\nRunning: step ", args.join(" ")
 
 try:
-  let p = startProcess("step", "", args, options={poParentStreams})
+  let p = startProcess(findExe("step"), "", args, options={poParentStreams})
+  let outputStream = p.outputStream()
+  
+  let output = readAll(outputStream)
+  if output.len > 0:
+    stdout.write(output)
+
   let code = p.waitForExit()
+
   if code == 0:
     echo "\n[OK] CA initialized successfully!\n"
   else:
     stderr.writeLine("\n[ERR] step-ca init failed with exit code: " & $code)
-except OSError:
-  stderr.writeLine("\n[ERR] Failed to execute 'step' command. Is step-ca installed?")
+except OSError as e:
+  stderr.writeLine("\n[ERR] Failed to execute 'step' command:", e.msg)
   # Still cleanup temp files before exiting
   if pwFile.len > 0: secureDelete(pwFile)
   if provPwFile.len > 0: secureDelete(provPwFile)
