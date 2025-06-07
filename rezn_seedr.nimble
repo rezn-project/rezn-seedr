@@ -5,7 +5,7 @@ author        = "andreamancuso"
 description   = "A new awesome nimble package"
 license       = "MPL-2.0"
 srcDir        = "src"
-bin           = @["rezn_seedr"]
+bin           = @["step_ca_init", "step_service"]
 
 
 # Dependencies
