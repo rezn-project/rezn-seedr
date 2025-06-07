@@ -11,5 +11,5 @@ bin           = @["rezn_seedr"]
 # Dependencies
 
 requires "nim >= 2.2.4"
-
+requires "passgen >= 0.2.0"
 requires "nimcrypto >= 0.6.3"
