@@ -78,6 +78,20 @@ int main(void)
 
     struct ncplane *stdplane = notcurses_stdplane(nc);
 
+    struct ncplane_options nopts = {
+        .y = 1,
+        .x = 2,
+        .rows = 10,
+        .cols = 80,
+        .userptr = NULL,
+        .name = "list",
+        .resizecb = ncplane_resize_realign,
+        .flags = 0,
+        .margin_b = 0,
+        .margin_r = 0,
+    };
+    struct ncplane *list_plane = ncplane_create(stdplane, &nopts);
+
     char32_t ch = 0;
     int selected = 0;
 
@@ -89,7 +103,7 @@ int main(void)
 
     while (ch != 'q')
     {
-        render_entries(nc, stdplane, selected);
+        render_entries(nc, list_plane, selected);
 
         int r = notcurses_get_blocking(nc, &ni);
         if (r <= 0)
