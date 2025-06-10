@@ -1,8 +1,7 @@
-#include <notcurses/direct.h>
+#include <notcurses/notcurses.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <locale.h>
 #include <uchar.h>
 
@@ -24,51 +23,60 @@ void add_dummy_entry(const char *name)
 {
     if (entry_count >= MAX_ENTRIES)
         return;
-    snprintf(entries[entry_count].hostname, 64, "host%d.local", entry_count);
-    snprintf(entries[entry_count].last_accessed, 32, "2025-06-10 21:37");
-    snprintf(entries[entry_count].name, 64, "%s", name);
-    snprintf(entries[entry_count].description, DESC_LEN, "This is a dummy description for %s", name);
+    snprintf(entries[entry_count].hostname, sizeof(entries[entry_count].hostname), "host%d.local", entry_count);
+    snprintf(entries[entry_count].last_accessed, sizeof(entries[entry_count].last_accessed), "2025-06-10 21:37");
+    snprintf(entries[entry_count].name, sizeof(entries[entry_count].name), "%s", name);
+    snprintf(entries[entry_count].description, sizeof(entries[entry_count].description), "This is a dummy description for %s", name);
     entry_count++;
 }
 
-void render_entries(struct ncdirect *nc, int selected)
+void render_entries(struct notcurses *nc, struct ncplane *plane, int selected)
 {
-    ncdirect_clear(nc);
+    ncplane_erase(plane);
+
     for (int i = 0; i < entry_count; ++i)
     {
         if (i == selected)
         {
-            ncdirect_set_fg_rgb(nc, 0x000000);
-            ncdirect_set_bg_rgb(nc, 0x00ff00);
+            ncplane_set_fg_rgb(plane, 0x000000);
+            ncplane_set_bg_rgb(plane, 0x00ff00); // highlighted row
         }
         else
         {
-            ncdirect_set_fg_rgb(nc, 0xdddddd);
-            ncdirect_set_bg_rgb(nc, 0x000000);
+            ncplane_set_fg_rgb(plane, 0xffffff);
+            ncplane_set_bg_rgb(plane, 0x000000);
         }
 
-        ncdirect_cursor_move_yx(nc, i + 1, 2);
         char line[384];
         snprintf(line, sizeof(line), "[%s] %s - %s (%s)",
                  entries[i].last_accessed,
                  entries[i].hostname,
                  entries[i].name,
                  entries[i].description);
-        ncdirect_putstr(nc, 0, line);
+
+        ncplane_move_yx(plane, i + 1, 2);
+        ncplane_putstr(plane, line);
     }
-    fflush(stdout);
+
+    notcurses_render(nc);
 }
 
 int main(void)
 {
     setlocale(LC_ALL, "");
 
-    struct ncdirect *nc = ncdirect_init(NULL, stdout, NCDIRECT_OPTION_INHIBIT_CBREAK);
-    if (!nc)
-        return 1;
+    struct notcurses_options opts = {
+        .flags = NCOPTION_INHIBIT_SETLOCALE // already calling setlocale manually
+    };
 
-    // ncdirect_set_fg_rgb(nc, 0x000000);
-    // ncdirect_set_bg_rgb(nc, 0x00ff00);
+    struct notcurses *nc = notcurses_core_init(&opts, NULL);
+    if (!nc)
+    {
+        fprintf(stderr, "Failed to init notcurses.\n");
+        return EXIT_FAILURE;
+    }
+
+    struct ncplane *stdplane = notcurses_stdplane(nc);
 
     char32_t ch = 0;
     int selected = 0;
@@ -77,11 +85,17 @@ int main(void)
     add_dummy_entry("entry_1");
     add_dummy_entry("entry_2");
 
+    struct ncinput ni;
+
     while (ch != 'q')
     {
-        render_entries(nc, selected);
+        render_entries(nc, stdplane, selected);
 
-        ch = ncdirect_get_blocking(nc, NULL);
+        int r = notcurses_get_blocking(nc, &ni);
+        if (r <= 0)
+            continue;
+
+        ch = ni.id;
 
         switch (ch)
         {
@@ -99,6 +113,6 @@ int main(void)
         }
     }
 
-    ncdirect_stop(nc);
-    return 0;
+    notcurses_stop(nc);
+    return EXIT_SUCCESS;
 }
