@@ -48,14 +48,14 @@ void render_entries(struct notcurses *nc, struct ncplane *plane, int selected)
         }
 
         char line[384];
-        snprintf(line, sizeof(line), "[%s] %s - %s (%s)",
+        snprintf(line, sizeof(line), "[%s] %s - %s (%s)\n",
                  entries[i].last_accessed,
                  entries[i].hostname,
                  entries[i].name,
                  entries[i].description);
 
-        ncplane_move_yx(plane, i + 1, 2);
         ncplane_putstr(plane, line);
+        ncplane_cursor_move_yx(plane, i + 1, 0);
     }
 
     notcurses_render(nc);
@@ -81,8 +81,8 @@ int main(void)
     struct ncplane_options nopts = {
         .y = 1,
         .x = 2,
-        .rows = 10,
-        .cols = 80,
+        .rows = 60,
+        .cols = 384,
         .userptr = NULL,
         .name = "list",
         .resizecb = ncplane_resize_realign,
