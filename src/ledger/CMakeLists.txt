@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 set(CMAKE_GENERATOR "Ninja")
 
-project(xframes LANGUAGES C CXX)
+project(rezn-ledger LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 
