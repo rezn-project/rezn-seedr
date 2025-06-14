@@ -1,7 +1,9 @@
 nimcache/
 nimblecache/
 htmldocs/
+build/
 
 step_ca_init
 step_service
-ledger
+
+.vscode/
