@@ -23,6 +23,7 @@ add_executable(rezn-ledger
     ${DEPS}/imgui/imgui_draw.cpp
     ${DEPS}/imgui/imgui_widgets.cpp
     ${DEPS}/imgui/imgui_tables.cpp
+    ${DEPS}/imtui/third-party/imgui/imgui/misc/cpp/imgui_stdlib.cpp
     ${DEPS}/imgui/imgui_demo.cpp
     ${DEPS}/imtui/src/imtui-impl-ncurses.cpp
     ${DEPS}/imtui/src/imtui-impl-text.cpp

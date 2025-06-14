@@ -1,6 +1,17 @@
-#include "imtui/imtui.h"
+#include <vector>
+#include <string>
 
+#include "imtui/imtui.h"
+#include "imgui/misc/cpp/imgui_stdlib.h"
 #include "imtui/imtui-impl-ncurses.h"
+
+struct HostDescriptor
+{
+    std::string name;
+    std::string host;
+};
+
+static HostDescriptor newHost;
 
 int main()
 {
@@ -14,6 +25,8 @@ int main()
     int nframes = 0;
     float fval = 1.23f;
 
+    std::vector<HostDescriptor> hosts;
+
     while (true)
     {
         ImTui_ImplNcurses_NewFrame();
@@ -24,12 +37,50 @@ int main()
         ImGui::SetNextWindowPos(ImVec2(4, 27), ImGuiCond_Once);
         ImGui::SetNextWindowSize(ImVec2(50.0, 10.0), ImGuiCond_Once);
         ImGui::Begin("Hello, world!");
-        ImGui::Text("NFrames = %d", nframes++);
-        ImGui::Text("Mouse Pos : x = %g, y = %g", ImGui::GetIO().MousePos.x, ImGui::GetIO().MousePos.y);
-        ImGui::Text("Time per frame %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-        ImGui::Text("Float:");
-        ImGui::SameLine();
-        ImGui::SliderFloat("##float", &fval, 0.0f, 10.0f);
+
+        if (ImGui::BeginTable("HostLedger", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+        {
+            ImGui::TableSetupColumn("Name");
+            ImGui::TableSetupColumn("Host");
+            ImGui::TableHeadersRow();
+
+            for (const auto &host : hosts)
+            {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted(host.name.c_str());
+                ImGui::TableSetColumnIndex(1);
+                ImGui::TextUnformatted(host.host.c_str());
+            }
+
+            ImGui::EndTable();
+        }
+
+        if (ImGui::Button("Add Host"))
+        {
+            ImGui::OpenPopup("AddHostPopup");
+        }
+
+        if (ImGui::BeginPopupModal("AddHostPopup"))
+        {
+            ImGui::InputText("Name", &newHost.name);
+            ImGui::InputText("Host", &newHost.host);
+
+            if (ImGui::Button("Add"))
+            {
+                hosts.push_back(newHost);
+                newHost = {};
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+            {
+                newHost = {};
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
 
 #ifndef __EMSCRIPTEN__
         ImGui::Text("%s", "");
@@ -40,8 +91,6 @@ int main()
 #endif
 
         ImGui::End();
-
-        // ImTui::ShowDemoWindow(&demo);
 
         ImGui::Render();
 
