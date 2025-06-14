@@ -15,6 +15,7 @@ set(LEDGER_SRC
 )
 
 find_package(Curses REQUIRED)
+include_directories(${CURSES_INCLUDE_DIR})
 
 add_executable(rezn-ledger
     ${LEDGER_SRC}
@@ -35,6 +36,4 @@ target_include_directories(
     ${DEPS}/imtui/include
 )
 
-target_link_libraries(rezn-ledger PRIVATE
-    ${CURSES_LIBRARIES}
-)
+target_link_libraries(rezn-ledger ${CURSES_LIBRARIES})
