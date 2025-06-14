@@ -101,5 +101,7 @@ int main()
     ImTui_ImplText_Shutdown();
     ImTui_ImplNcurses_Shutdown();
 
+    ImGui::DestroyContext();
+
     return 0;
 }
